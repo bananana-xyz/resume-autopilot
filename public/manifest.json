@@ -9,5 +9,16 @@
   "action": {
     "default_icon": "logo512.png",
     "default_popup": "index.html"
-  }
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "unlimitedStorage"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
 }
