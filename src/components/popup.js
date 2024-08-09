@@ -70,11 +70,11 @@ function Popup() {
   useEffect(() => {
     if (alert.open) {
       const timer = setTimeout(() => {
-        setAlert({ open: false, message: '', severity: 'success' });
+        setAlert({ open: false, message: '', severity: alert.severity });
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [alert.open]);
+  }, [alert.open, alert.severity]);
 
   const handleSetForms = (e) => {
     const {name, value} = e.target;
