@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Fun extension",
-  "description": "Your custom YouTube Playlist",
+  "name": "Greenhouse Autopilot",
+  "description": "Your Greenhouse Autopilot",
   "version": "1.0.0",
   "icons": {
-    "256": "logo512.png"
+    "256": "logo.png",
+    "512": "logo.png"
   },
   "action": {
-    "default_icon": "logo512.png",
+    "default_icon": "logo.png",
     "default_popup": "index.html"
   },
   "permissions": [
