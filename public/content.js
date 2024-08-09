@@ -1,6 +1,9 @@
 /*global chrome*/
 console.log('Greenhouse Autopilot Content script loaded');
 
+// Notify popup.js that content.js is loaded
+chrome.runtime.sendMessage({ action: "AutopilotScriptLoaded" });
+
 // Function to get text from job__content div
 function getJobContentText() {
     const jobContentDiv = document.querySelector('.job__content');

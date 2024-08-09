@@ -3,8 +3,10 @@ import { useEffect, useState, useRef } from 'react';
 
 import OpenAI from 'openai';
 import Alert from '@mui/material/Alert';
+import Fade from '@mui/material/Fade';
 
 // icon
+import Logo from '../icons/Logo.png';
 import DeleteIcon from '../icons/DeleteIcon';
 import DownloadIcon from '../icons/DownloadIcon';
 
@@ -12,6 +14,7 @@ import DownloadIcon from '../icons/DownloadIcon';
 const DefaultColor = "#9A6852"
 
 function Popup() {
+  const [contentJSLoaded, setContentJSLoaded] = useState(false);
   const [isSetup, setIsSetup] = useState(false);
   const [formData, setFormData] = useState({});
   const [resume, setResume] = useState(null)
@@ -23,6 +26,15 @@ function Popup() {
   const hiddenFileInput = useRef(null);
 
   useEffect(() => {
+    // Set up message listener from content.js
+    chrome.runtime?.onMessage?.addListener((request, sender, sendResponse) => {
+      if (request.action === "AutopilotScriptLoaded") {
+        console.log('Content script has loaded.');
+        // You can perform additional actions here if needed
+        setContentJSLoaded(true);
+      }
+    });
+
     chrome.storage?.sync.get(['formData', 'resumeName'], (data) => {
       if (data.formData) {
         setFormData(data.formData);
@@ -88,6 +100,11 @@ function Popup() {
   };
 
   const handleAutoFill = (e) => {
+    if (!contentJSLoaded) {
+      setAlert({ open: true, message: 'Please refresh the page and try again.', severity: 'error' });
+      return;
+    }
+
     e.preventDefault();
     chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(
@@ -183,6 +200,11 @@ function Popup() {
   }
 
   const handleCoverLetter = () => {
+    if (!openAIAPI) {
+      setAlert({ open: true, message: 'Please set OpenAI API Key', severity: 'error' });
+      return;
+    }
+
     if (jobContent) {
       const client = new OpenAI({
         apiKey: openAIAPI,
@@ -197,26 +219,43 @@ function Popup() {
     }
   }
 
+  // css style for button
+  const buttonClassName = (disabled) => {
+    if (disabled){
+      return "bg-green-400"
+    } else {
+      return "bg-green-200"
+    }
+  }
+
   return (
     <div className="flex-1 w-[400px] p-5" style={{backgroundColor: "rgba(218, 190, 167, 0.4)", color: DefaultColor}}>
-      {alert.open && (
-        <div className="absolute inset-0 justify-center p-2">
+      <Fade in={alert.open}>
+        <div className="absolute inset-0 justify-center p-2 h-0">
           <div className="w-full max-w-sm">
             <Alert severity={alert.severity}>{alert.message}</Alert>
           </div>
         </div>
-      )}
+      </Fade>
 
-      <div className="flex-1 justify-center text-center pb-5">
-        <div className="flex-1 font-bold text-2xl">Greenhouse Autopilot</div>
+      <div className="flex-1 justify-center text-center">
+        <img src={Logo} alt="logo" className="mx-auto transition-all duration-500 ease-in-out"
+          style={{ height: isSetup ? '100px' : '150px', width: isSetup ? '100px' : '150px' }}
+        />
+        <Fade in={!isSetup} style={{
+          height: isSetup ? '0px' : 'auto',
+        }}>
+          <div className="flex-1 font-bold text-xl">Greenhouse Autopilot</div>
+        </Fade>
       </div>
 
       {!isSetup && (
-        <div className="flex flex-col flex-1 w-full">
+        <div className="flex flex-col flex-1 w-full  pt-5">
 
           <div className="pb-5 w-full">
             <button
-              className="bg-green-400 text-white font-bold py-2 px-4 rounded w-full"
+              className={`
+                ${buttonClassName(contentJSLoaded)} text-white font-bold py-2 px-4 rounded w-full`}
               onClick={handleAutoFill}
             >
               Auto Fill
@@ -225,7 +264,7 @@ function Popup() {
 
           <div className="pb-5 w-full flex-1">
             <button
-              className="bg-green-300 text-white font-bold py-2 px-4 rounded w-full"
+              className="bg-green-400 text-white font-bold py-2 px-4 rounded w-full"
               onClick={handleSetup}
             >
               Setup
@@ -234,7 +273,7 @@ function Popup() {
 
           <div className="pb-5 w-full flex-1">
             <button
-              className="bg-green-300 text-white font-bold py-2 px-4 rounded w-full"
+              className={`${buttonClassName(openAIAPI)} text-white font-bold py-2 px-4 rounded w-full`}
               onClick={handleCoverLetter}
             >
               Generate Cover Letter
