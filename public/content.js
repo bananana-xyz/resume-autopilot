@@ -7,6 +7,11 @@ function getJobContentText() {
     return jobContentDiv ? jobContentDiv.innerText : 'Job content not found';
 }
 
+function triggerEvent(el) {
+    const event = new Event('change', { bubbles: true });
+    el.dispatchEvent(event);
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "autoFill") {
         const formData = request.value
@@ -16,24 +21,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 if (typeof greenhouseInput !== "undefined") {
                     greenhouseInput.value = formData[key]
                 }
+                triggerEvent(greenhouseInput);
             }
             if (key === "lastName") {
                 const greenhouseInput = document.getElementById("last_name");
                 if (typeof greenhouseInput !== "undefined"){
                     greenhouseInput.value = formData[key]
                 }
+                triggerEvent(greenhouseInput);
             }
             if (key === "phone") {
                 const greenhouseInput = document.getElementById("phone");
                 if (typeof greenhouseInput !== "undefined"){
                     greenhouseInput.value = formData[key]
                 }
+                triggerEvent(greenhouseInput);
             }
             if (key === "email") {
                 const greenhouseInput = document.getElementById("email");
                 if (typeof greenhouseInput !== "undefined"){
                     greenhouseInput.value = formData[key]
                 }
+                triggerEvent(greenhouseInput);
+            }
+            if (key === "linkedin") {
+                const greenhouseInput = document.querySelector('input[aria-label="LinkedIn Profile"]');
+                if (typeof greenhouseInput !== "undefined"){
+                    greenhouseInput.value = formData[key]
+                }
+                triggerEvent(greenhouseInput);
             }
         })
     }
@@ -63,9 +79,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             attachResumeInput.files = dataTransfer.files;
 
             // Dispatch a change event to trigger any listeners
-            const event = new Event('change', { bubbles: true });
-            attachResumeInput.dispatchEvent(event);
-
+            triggerEvent(attachResumeInput);
         } else {
             console.error("File input element with id 'resume' not found.");
         }

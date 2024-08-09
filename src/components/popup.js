@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 
 import OpenAI from 'openai';
+import Alert from '@mui/material/Alert';
 
 // icon
 import DeleteIcon from '../icons/DeleteIcon';
@@ -17,15 +18,9 @@ function Main() {
   const [resumeName, setResumeName] = useState(null);
   const [jobContent, setJobContent] = useState("");
   const [openAIAPI, setOpenAIAPI] = useState(null);
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   const hiddenFileInput = useRef(null);
-
-  const open_api_key = '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'
-  const client = new OpenAI({
-    apiKey: open_api_key, // This is the default and can be omitted
-    dangerouslyAllowBrowser: true
-  });
-
 
   useEffect(() => {
     chrome.storage?.sync.get(['formData', 'resumeName'], (data) => {
@@ -60,6 +55,15 @@ function Main() {
     });
   }, []);
 
+  useEffect(() => {
+    if (alert.open) {
+      const timer = setTimeout(() => {
+        setAlert({ open: false, message: '', severity: 'success' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert.open]);
+
   const handleSetForms = (e) => {
     const {name, value} = e.target;
     setFormData({
@@ -80,6 +84,7 @@ function Main() {
     chrome.storage?.local.set({openAIAPI: openAIAPI}, () => {
       console.log('OpenAI API Key saved');
     })
+    setAlert({ open: true, message: 'Your information saved!', severity: 'success' });
   };
 
   const handleFill = (e) => {
@@ -177,6 +182,10 @@ function Main() {
 
   const handleCoverLetter = () => {
     if (jobContent) {
+      const client = new OpenAI({
+        apiKey: openAIAPI,
+        dangerouslyAllowBrowser: true
+      });
       const chatCompletion = client.chat.completions.create({
         messages: [{ role: 'user', content: jobContent}],
         model: 'gpt-3.5-turbo',
@@ -188,6 +197,14 @@ function Main() {
 
   return (
     <div className="flex-1 w-[400px] p-5" style={{backgroundColor: "rgba(218, 190, 167, 0.4)", color: DefaultColor}}>
+      {alert.open && (
+        <div className="fixed inset-0 justify-center p-2">
+          <div className="w-full max-w-sm">
+            <Alert severity="success">Your information saved!</Alert>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 justify-center text-center pb-5">
         <div className="flex-1 font-bold text-2xl">Greenhouse Autopilot</div>
       </div>
@@ -206,7 +223,7 @@ function Main() {
 
           <div className="pb-5 w-full flex-1">
             <button
-              className="bg-green-200 text-white font-bold py-2 px-4 rounded w-full"
+              className="bg-green-300 text-white font-bold py-2 px-4 rounded w-full"
               onClick={handleSetup}
             >
               Setup
@@ -215,7 +232,7 @@ function Main() {
 
           <div className="pb-5 w-full flex-1">
             <button
-              className="bg-green-200 text-white font-bold py-2 px-4 rounded w-full"
+              className="bg-green-300 text-white font-bold py-2 px-4 rounded w-full"
               onClick={handleCoverLetter}
             >
               Generate Cover Letter
@@ -272,6 +289,18 @@ function Main() {
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-400 focus:border-green-400 sm:text-sm p-2"
               placeholder="Phone"
               value={formData.phone}
+              onChange={handleSetForms}
+            />
+          </div>
+
+          <div className='pb-2'>
+            <label className="block text-bold text-base text-gray-700 pb-1">LinkedIn</label>
+            <input
+              type="text"
+              name="linkedin"
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-400 focus:border-green-400 sm:text-sm p-2"
+              placeholder="https://www.linkedin.com/in/username"
+              value={formData.linkedin}
               onChange={handleSetForms}
             />
           </div>
