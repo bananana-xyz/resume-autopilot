@@ -263,21 +263,26 @@ function Main() {
               </div>
             )
           }
-          <div className="pt-2 w-full flex-1">
-            <button
-              className={`${resume? "bg-red-400": "bg-orange-200"} text-white font-bold py-2 px-4 rounded w-full`}
-              onClick={handleFileUpload}
-            >
-              Upload Resume
-            </button>
-            <input
-              type="file"
-              accept='.pdf,.doc'
-              onChange={handleResumeUpload}
-              ref={hiddenFileInput}
-              style={{display: 'none'}} // Make the file input element invisible
-            />
-          </div>
+
+          {
+            !resume && (
+              <div className="pt-2 w-full flex-1">
+                <button
+                  className={`bg-orange-200 text-white font-bold py-2 px-4 rounded w-full`}
+                  onClick={handleFileUpload}
+                >
+                  Upload Resume
+                </button>
+                <input
+                  type="file"
+                  accept='.pdf,.doc'
+                  onChange={handleResumeUpload}
+                  ref={hiddenFileInput}
+                  style={{display: 'none'}} // Make the file input element invisible
+                />
+              </div>
+            )
+          }
 
           <div className="pt-2 w-full flex-1">
             <button
