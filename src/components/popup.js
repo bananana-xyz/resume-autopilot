@@ -224,7 +224,14 @@ function Main() {
             resume && (
               <div className='pb-2'>
               <label className="block text-bold text-base text-gray-700 pb-1">Reume</label>
-              <div className='text-bold text-base'>{resumeName}</div>
+              <div className='text-bold text-base'>{resumeName}
+              <span 
+                className="h-5 w-5 ml-2 text-red-500 cursor-pointer" 
+                onClick={handleResumeClear}
+              >
+                &#x2715;
+              </span>
+              </div>
             </div>  
             )
           }
@@ -233,7 +240,7 @@ function Main() {
               className={`${resume? "bg-red-300": "bg-orange-200"} text-white font-bold py-2 px-4 rounded w-full`}
               onClick={handleFileUpload}
             >
-              {resume? "Clear Resume" : "Upload Resume"}
+              Upload Resume
             </button>
             <input
               type="file"
