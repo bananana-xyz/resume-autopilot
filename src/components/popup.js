@@ -11,7 +11,7 @@ import DownloadIcon from '../icons/DownloadIcon';
 // constant
 const DefaultColor = "#9A6852"
 
-function Main() {
+function Popup() {
   const [isSetup, setIsSetup] = useState(false);
   const [formData, setFormData] = useState({});
   const [resume, setResume] = useState(null)
@@ -84,10 +84,10 @@ function Main() {
     chrome.storage?.local.set({openAIAPI: openAIAPI}, () => {
       console.log('OpenAI API Key saved');
     })
-    setAlert({ open: true, message: 'Your information saved!', severity: 'success' });
+    setAlert({ open: true, message: 'Your information saved!', severity: 'info' });
   };
 
-  const handleFill = (e) => {
+  const handleAutoFill = (e) => {
     e.preventDefault();
     chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(
@@ -111,6 +111,8 @@ function Main() {
         );
       });
     }
+
+    setAlert({ open: true, message: 'Filling your application...', severity: 'info' });
   }
 
   const handleResumeUpload = (e) => {
@@ -198,9 +200,9 @@ function Main() {
   return (
     <div className="flex-1 w-[400px] p-5" style={{backgroundColor: "rgba(218, 190, 167, 0.4)", color: DefaultColor}}>
       {alert.open && (
-        <div className="fixed inset-0 justify-center p-2">
+        <div className="absolute inset-0 justify-center p-2">
           <div className="w-full max-w-sm">
-            <Alert severity="success">Your information saved!</Alert>
+            <Alert severity={alert.severity}>{alert.message}</Alert>
           </div>
         </div>
       )}
@@ -215,7 +217,7 @@ function Main() {
           <div className="pb-5 w-full">
             <button
               className="bg-green-400 text-white font-bold py-2 px-4 rounded w-full"
-              onClick={handleFill}
+              onClick={handleAutoFill}
             >
               Auto Fill
             </button>
@@ -389,4 +391,4 @@ function Main() {
   );
 }
 
-export default Main;
+export default Popup;

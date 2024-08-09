@@ -1,11 +1,11 @@
 import './App.css';
 
-import Main from './components/popup';
+import Popup from './components/Popup';
 
 function App() {
   return (
     <div>
-      <Main />
+      <Popup />
     </div>
   );
 }
