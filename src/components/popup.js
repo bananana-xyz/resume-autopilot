@@ -1,6 +1,12 @@
 /*global chrome*/
 import { useEffect, useState, useRef } from 'react';
+
 import OpenAI from 'openai';
+
+import DeleteIcon from '../icons/DeleteIcon';
+
+// constant
+const DefaultColor = "#9A6852"
 
 function Main() {
   const [isSetup, setIsSetup] = useState(false);
@@ -19,7 +25,7 @@ function Main() {
 
 
   useEffect(() => {
-    chrome.storage.sync.get(['formData', 'resumeName'], (data) => {
+    chrome.storage?.sync.get(['formData', 'resumeName'], (data) => {
       console.log(data)
       if (data.formData) {
         setFormData(data.formData);
@@ -28,13 +34,13 @@ function Main() {
         setResumeName(data.resumeName);
       }
     });
-    chrome.storage.local.get('resume', data => {
+    chrome.storage?.local.get('resume', data => {
       if (data.resume) {
         setResume(data.resume);
       }
     })
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(
         tabs[0].id,
         {
@@ -63,14 +69,14 @@ function Main() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    chrome.storage.sync.set({ formData: formData }, function () {
+    chrome.storage?.sync.set({ formData: formData }, function () {
       console.log('Data is saved:', formData);
     });
   };
 
   const handleFill = (e) => {
     e.preventDefault();
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(
         tabs[0].id,
         {
@@ -82,26 +88,32 @@ function Main() {
   }
 
   const handleResumeUpload = (e) => {
+    console.log('Uploading resume')
     const file = e.target.files[0]
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
+        console.log('Reading resume')
         const resumeContent = e.target.result;
         setResume(resumeContent);
-        chrome.storage.local.set({resume: resumeContent}, () => {
+        chrome.storage?.local.set({resume: resumeContent}, () => {
           console.log('Resume saved');
         })
         setResumeName(file.name);
-        chrome.storage.sync.set({resumeName: file.name}, () => {
+        chrome.storage?.sync.set({resumeName: file.name}, () => {
           console.log('Resume name saved')
         })
       }
       reader.readAsText(file)
+
+      // Change the input key to force re-render
+      e.target.value = null;
     }
   }
 
   const handleFileUpload = () => {
     if (!resume) {
+      console.log('Clicking hidden file input')
       hiddenFileInput.current.click();
     } else {
       handleResumeClear()
@@ -110,11 +122,11 @@ function Main() {
 
   const handleResumeClear = () => {
     setResume(null);
-    chrome.storage.local.remove('resume', () => {
+    chrome.storage?.local.remove('resume', () => {
       console.log('Resume cleared')
     })
     setResumeName(null);
-    chrome.storage.sync.remove('resumeName', () => {
+    chrome.storage?.sync.remove('resumeName', () => {
       console.log('Resume Name cleared')
     })
   }
@@ -131,7 +143,7 @@ function Main() {
   }
 
   return (
-    <div className="flex-1 w-[400px] p-5" style={{backgroundColor: "rgba(218, 190, 167, 0.4)", color: "#9A6852"}}>
+    <div className="flex-1 w-[400px] p-5" style={{backgroundColor: "rgba(218, 190, 167, 0.4)", color: DefaultColor}}>
       <div className="flex-1 justify-center text-center pb-5">
         <div className="flex-1 font-bold text-2xl">Greenhouse Autopilot</div>
       </div>
@@ -206,7 +218,7 @@ function Main() {
               value={formData.email}
               onChange={handleSetForms}
             />
-          </div>          
+          </div>
 
           <div className='pb-2'>
             <label className="block text-bold text-base text-gray-700 pb-1">Phone</label>
@@ -218,19 +230,27 @@ function Main() {
               value={formData.phone}
               onChange={handleSetForms}
             />
-          </div>  
-           
+          </div>
+
           {
             resume && (
               <div className='pb-2'>
-              <label className="block text-bold text-base text-gray-700 pb-1">Reume</label>
-              <div className='text-bold text-base'>{resumeName}</div>
-            </div>  
+                <label className="block text-bold text-base text-gray-700 pb-1">Reume</label>
+                <div className='flex items-center justify-between'>
+                  <p className='flex-1 text-bold text-base'>{resumeName}</p>
+                  <div
+                    className="hover:cursor-pointer hover:bg-slate-100 transition-colors duration-300 p-1 rounded-full"
+                    onClick={handleFileUpload}
+                  >
+                    <DeleteIcon stroke="rgb(248 113 113)" />
+                  </div>
+                </div>
+              </div>
             )
           }
           <div className="pt-2 w-full flex-1">
             <button
-              className={`${resume? "bg-red-300": "bg-orange-200"} text-white font-bold py-2 px-4 rounded w-full`}
+              className={`${resume? "bg-red-400": "bg-orange-200"} text-white font-bold py-2 px-4 rounded w-full`}
               onClick={handleFileUpload}
             >
               {resume? "Clear Resume" : "Upload Resume"}
@@ -242,7 +262,7 @@ function Main() {
               ref={hiddenFileInput}
               style={{display: 'none'}} // Make the file input element invisible
             />
-          </div>  
+          </div>
 
           <div className="pt-2 w-full flex-1">
             <button
@@ -260,7 +280,7 @@ function Main() {
             >
               Back
             </button>
-          </div>           
+          </div>
 
 
         </div>
