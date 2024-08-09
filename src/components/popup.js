@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 
 // icon
 import DeleteIcon from '../icons/DeleteIcon';
+import DownloadIcon from '../icons/DownloadIcon';
 
 // constant
 const DefaultColor = "#9A6852"
@@ -15,6 +16,7 @@ function Main() {
   const [resume, setResume] = useState(null)
   const [resumeName, setResumeName] = useState(null);
   const [jobContent, setJobContent] = useState("");
+  const [openAIAPI, setOpenAIAPI] = useState(null);
 
   const hiddenFileInput = useRef(null);
 
@@ -34,9 +36,12 @@ function Main() {
         setResumeName(data.resumeName);
       }
     });
-    chrome.storage?.local.get('resume', data => {
+    chrome.storage?.local.get(['resume', 'openAIAPI'], data => {
       if (data.resume) {
         setResume(data.resume);
+      }
+      if (data.openAIAPI) {
+        setOpenAIAPI(data.openAIAPI);
       }
     })
 
@@ -67,11 +72,14 @@ function Main() {
     setIsSetup(!isSetup);
   }
 
-  const handleSubmit = (e) => {
+  const handleSave = (e) => {
     e.preventDefault();
     chrome.storage?.sync.set({ formData: formData }, function () {
       console.log('Data is saved:', formData);
     });
+    chrome.storage?.local.set({openAIAPI: openAIAPI}, () => {
+      console.log('OpenAI API Key saved');
+    })
   };
 
   const handleFill = (e) => {
@@ -125,6 +133,25 @@ function Main() {
     }
   }
 
+  const handleResumeDownload = () => {
+    const byteCharacters = atob(resume);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = resumeName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
   const handleFileUpload = () => {
     if (!resume) {
       hiddenFileInput.current.click();
@@ -142,6 +169,10 @@ function Main() {
     chrome.storage?.sync.remove('resumeName', () => {
       console.log('Resume Name cleared')
     })
+  }
+
+  const handleOpenAIAPI = (e) => {
+    setOpenAIAPI(e.target.value);
   }
 
   const handleCoverLetter = () => {
@@ -245,17 +276,37 @@ function Main() {
             />
           </div>
 
+          <div className='pb-2'>
+            <label className="block text-bold text-base text-gray-700 pb-1">OpenAI API Key</label>
+            <input
+              type="text"
+              name="openAIAPI"
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-400 focus:border-green-400 sm:text-sm p-2"
+              placeholder="(Optional) sk-proj-. . ."
+              value={openAIAPI}
+              onChange={handleOpenAIAPI}
+            />
+          </div>
+
           {
             resume && (
               <div className='pb-2'>
                 <label className="block text-bold text-base text-gray-700 pb-1">Reume</label>
                 <div className='flex items-center justify-between'>
                   <p className='flex-1 text-bold text-base'>{resumeName}</p>
-                  <div
-                    className="hover:cursor-pointer hover:bg-slate-100 transition-colors duration-300 p-1 rounded-full"
-                    onClick={handleFileUpload}
-                  >
-                    <DeleteIcon stroke="rgb(248 113 113)" />
+                  <div className="flex">
+                    <div
+                      className="hover:cursor-pointer hover:bg-slate-100 transition-colors duration-300 p-1 rounded-full"
+                      onClick={handleResumeDownload}
+                    >
+                      <DownloadIcon stroke="rgb(251 146 60)" />
+                    </div>
+                    <div
+                      className="hover:cursor-pointer hover:bg-slate-100 transition-colors duration-300 p-1 rounded-full"
+                      onClick={handleFileUpload}
+                    >
+                      <DeleteIcon stroke="rgb(248 113 113)" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -266,7 +317,7 @@ function Main() {
             !resume && (
               <div className="pt-2 w-full flex-1">
                 <button
-                  className={`bg-orange-200 text-white font-bold py-2 px-4 rounded w-full`}
+                  className={`bg-orange-400 text-white font-bold py-2 px-4 rounded w-full`}
                   onClick={handleFileUpload}
                 >
                   Upload Resume
@@ -284,8 +335,8 @@ function Main() {
 
           <div className="pt-2 w-full flex-1">
             <button
-              className="bg-orange-200 text-white font-bold py-2 px-4 rounded w-full"
-              onClick={handleSubmit}
+              className="bg-orange-400 text-white font-bold py-2 px-4 rounded w-full"
+              onClick={handleSave}
             >
               Save
             </button>
@@ -293,7 +344,7 @@ function Main() {
 
           <div className="pt-2 w-full flex-1">
             <button
-              className="bg-orange-200 text-white font-bold py-2 px-4 rounded w-full"
+              className="bg-orange-400 text-white font-bold py-2 px-4 rounded w-full"
               onClick={handleSetup}
             >
               Back
