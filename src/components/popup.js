@@ -26,7 +26,6 @@ function Main() {
 
   useEffect(() => {
     chrome.storage?.sync.get(['formData', 'resumeName'], (data) => {
-      console.log(data)
       if (data.formData) {
         setFormData(data.formData);
       }
@@ -85,6 +84,19 @@ function Main() {
         }
       );
     });
+
+    if (resume) {
+      chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          {
+            action: 'uploadResume',
+            resume: resume,
+            resumeName: resumeName
+          }
+        );
+      });
+    }
   }
 
   const handleResumeUpload = (e) => {
@@ -93,18 +105,21 @@ function Main() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        console.log('Reading resume')
-        const resumeContent = e.target.result;
-        setResume(resumeContent);
-        chrome.storage?.local.set({resume: resumeContent}, () => {
-          console.log('Resume saved');
-        })
+        const resumeContentBase64 = e.target.result.split(',')[1]; // Get Base64 part of the result
+        console.log('Resume content in Base64:', resumeContentBase64);
+
+        // Store the Base64 string and file name
+        chrome.storage?.local.set({ resume: resumeContentBase64, resumeName: file.name }, () => {
+          console.log('Resume content saved as Base64');
+        });
+        chrome.storage?.sync.set({ resumeName: file.name }, () => {
+          console.log('Resume name saved');
+        });
+
+        setResume(resumeContentBase64);
         setResumeName(file.name);
-        chrome.storage?.sync.set({resumeName: file.name}, () => {
-          console.log('Resume name saved')
-        })
       }
-      reader.readAsText(file)
+      reader.readAsDataURL(file); // Read file as data URL to get Base64 encoding
 
       // Change the input key to force re-render
       e.target.value = null;
