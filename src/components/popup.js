@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 
 import OpenAI from 'openai';
 
+// icon
 import DeleteIcon from '../icons/DeleteIcon';
 
 // constant
@@ -100,16 +101,14 @@ function Main() {
   }
 
   const handleResumeUpload = (e) => {
-    console.log('Uploading resume')
     const file = e.target.files[0]
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const resumeContentBase64 = e.target.result.split(',')[1]; // Get Base64 part of the result
-        console.log('Resume content in Base64:', resumeContentBase64);
 
         // Store the Base64 string and file name
-        chrome.storage?.local.set({ resume: resumeContentBase64, resumeName: file.name }, () => {
+        chrome.storage?.local.set({ resume: resumeContentBase64 }, () => {
           console.log('Resume content saved as Base64');
         });
         chrome.storage?.sync.set({ resumeName: file.name }, () => {
@@ -128,7 +127,6 @@ function Main() {
 
   const handleFileUpload = () => {
     if (!resume) {
-      console.log('Clicking hidden file input')
       hiddenFileInput.current.click();
     } else {
       handleResumeClear()
@@ -275,7 +273,7 @@ function Main() {
                 </button>
                 <input
                   type="file"
-                  accept='.pdf,.doc'
+                  accept='.pdf'
                   onChange={handleResumeUpload}
                   ref={hiddenFileInput}
                   style={{display: 'none'}} // Make the file input element invisible
