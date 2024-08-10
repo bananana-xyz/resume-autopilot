@@ -4,6 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 import OpenAI from 'openai';
 import Alert from '@mui/material/Alert';
 import Fade from '@mui/material/Fade';
+import { pdfjs } from 'react-pdf';
+
+// utils
+import { extractText } from '../utils/utils';
 
 // icon
 import Logo from '../icons/Logo.png';
@@ -20,12 +24,14 @@ function Popup() {
   const [resume, setResume] = useState(null)
   const [resumeName, setResumeName] = useState(null);
   const [jobContent, setJobContent] = useState("");
-  const [openAIAPI, setOpenAIAPI] = useState(null);
+  const [openAIAPI, setOpenAIAPI] = useState("");
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   const hiddenFileInput = useRef(null);
 
   useEffect(() => {
+    pdfjs.GlobalWorkerOptions.workerSrc = chrome.runtime?.getURL('pdfjs/pdf.worker.min.mjs');
+
     // Set up message listener from content.js
     chrome.runtime?.onMessage?.addListener((request, sender, sendResponse) => {
       if (request.action === "AutopilotScriptLoaded") {
@@ -199,24 +205,60 @@ function Popup() {
     setOpenAIAPI(e.target.value);
   }
 
-  const handleCoverLetter = () => {
+  const handleCoverLetter = async () => {
     if (!openAIAPI) {
-      setAlert({ open: true, message: 'Please set OpenAI API Key', severity: 'error' });
+      setAlert({ open: true, message: 'Please set OpenAI API key', severity: 'error' });
       return;
     }
 
-    if (jobContent) {
-      const client = new OpenAI({
-        apiKey: openAIAPI,
-        dangerouslyAllowBrowser: true
-      });
-      const chatCompletion = client.chat.completions.create({
-        messages: [{ role: 'user', content: jobContent}],
-        model: 'gpt-3.5-turbo',
-        prompt: 'write a cover letter for the following job description based on the resume'
-      });
-      console.log(chatCompletion.choices[0])
+    if (!resume) {
+      setAlert({ open: true, message: 'Please upload resume', severity: 'error'});
     }
+
+    if (!jobContent) {
+      setAlert({ open: true, message: 'Please refresh the page and try again.', severity: 'error'});
+    }
+
+    // Reconstruct the Blob from the Base64 string
+    const byteCharacters = atob(resume);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+    // Create a File object from the Blob
+    const file = new File([blob], resumeName, { type: 'application/pdf' });
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const typedarray = new Uint8Array(e.target.result);
+      const pdf = await pdfjs.getDocument({ data: typedarray }).promise;
+      const text = await extractText(pdf);
+      console.log({
+        resume: text,
+        jd: jobContent,
+      })
+
+      // submit to Open AI
+      if (jobContent) {
+        const client = new OpenAI({
+          apiKey: openAIAPI,
+          dangerouslyAllowBrowser: true
+        });
+        const chatCompletion = await client.chat.completions.create({
+          messages: [
+            { role: 'system', content: 'write a cover letter for the following job description based on the resume' },
+            { role: 'user', content: `${text} \n Based on the resume, please write a cover letter for the following job: \n${jobContent}`}
+          ],
+          model: 'gpt-4o-mini',
+        });
+        console.log(chatCompletion.choices[0])
+      }
+
+    }
+    reader.readAsArrayBuffer(file);
   }
 
   // css style for button
@@ -273,7 +315,7 @@ function Popup() {
 
           <div className="pb-5 w-full flex-1">
             <button
-              className={`${buttonClassName(openAIAPI)} text-white font-bold py-2 px-4 rounded w-full`}
+              className={`${buttonClassName(openAIAPI && jobContent)} text-white font-bold py-2 px-4 rounded w-full`}
               onClick={handleCoverLetter}
             >
               Generate Cover Letter
