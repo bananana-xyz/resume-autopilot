@@ -30,7 +30,11 @@ function Popup() {
   const hiddenFileInput = useRef(null);
 
   useEffect(() => {
-    pdfjs.GlobalWorkerOptions.workerSrc = chrome.runtime?.getURL('pdfjs/pdf.worker.min.mjs');
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc = chrome?.runtime?.getURL('pdfjs/pdf.worker.min.mjs');
+    } catch (e) {
+      console.log("Error loading pdfjs worker", e);
+    }
 
     // Set up message listener from content.js
     chrome.runtime?.onMessage?.addListener((request, sender, sendResponse) => {
@@ -273,7 +277,7 @@ function Popup() {
   return (
     <div className="flex-1 w-[400px] p-5" style={{backgroundColor: "rgba(218, 190, 167, 0.4)", color: DefaultColor}}>
       <Fade in={alert.open}>
-        <div className="absolute inset-0 justify-center p-2 h-0">
+        <div className="fixed inset-0 justify-center p-2 h-0">
           <div className="w-full max-w-sm">
             <Alert severity={alert.severity}>{alert.message}</Alert>
           </div>
