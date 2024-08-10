@@ -18,13 +18,14 @@ import DownloadIcon from '../icons/DownloadIcon';
 const DefaultColor = "#9A6852"
 
 function Popup() {
-  const [contentJSLoaded, setContentJSLoaded] = useState(false);
   const [isSetup, setIsSetup] = useState(false);
   const [formData, setFormData] = useState({});
   const [resume, setResume] = useState(null)
   const [resumeName, setResumeName] = useState(null);
   const [jobContent, setJobContent] = useState("");
   const [openAIAPI, setOpenAIAPI] = useState("");
+  const [openAICoverLetter, setOpenAICoverLetter] = useState(``);
+  const [displayCoverLetter, setDisplayCoverLetter] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   const hiddenFileInput = useRef(null);
@@ -35,15 +36,6 @@ function Popup() {
     } catch (e) {
       console.log("Error loading pdfjs worker", e);
     }
-
-    // Set up message listener from content.js
-    chrome.runtime?.onMessage?.addListener((request, sender, sendResponse) => {
-      if (request.action === "AutopilotScriptLoaded") {
-        console.log('Content script has loaded.');
-        // You can perform additional actions here if needed
-        setContentJSLoaded(true);
-      }
-    });
 
     chrome.storage?.sync.get(['formData', 'resumeName'], (data) => {
       if (data.formData) {
@@ -74,6 +66,19 @@ function Popup() {
           }
         }
       );
+    });
+
+    chrome.storage?.local.get(['openAICoverLetter', 'coverLetterTimeout'], data => {
+      if (data.coverLetterTimeout) {
+        // remove the cover letter after 5 minutes
+        if (data.coverLetterTimeout && Math.floor(new Date() / 1000) - data.coverLetterTimeout > 300) {
+          chrome.storage?.local.remove(['openAICoverLetter', 'coverLetterTimeout'], () => {
+            console.log('Cover letter cleared');
+          });
+          return;
+        }
+        setOpenAICoverLetter(data.openAICoverLetter);
+      }
     });
   }, []);
 
@@ -110,11 +115,6 @@ function Popup() {
   };
 
   const handleAutoFill = (e) => {
-    if (!contentJSLoaded) {
-      setAlert({ open: true, message: 'Please refresh the page and try again.', severity: 'error' });
-      return;
-    }
-
     e.preventDefault();
     chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(
@@ -209,7 +209,7 @@ function Popup() {
     setOpenAIAPI(e.target.value);
   }
 
-  const handleCoverLetter = async () => {
+  const handleGenCoverLetter = async () => {
     if (!openAIAPI) {
       setAlert({ open: true, message: 'Please set OpenAI API key', severity: 'error' });
       return;
@@ -245,24 +245,66 @@ function Popup() {
         jd: jobContent,
       })
 
+      setAlert({ open: true, message: 'Generating cover letter...', severity: 'info' });
       // submit to Open AI
       if (jobContent) {
-        const client = new OpenAI({
-          apiKey: openAIAPI,
-          dangerouslyAllowBrowser: true
-        });
-        const chatCompletion = await client.chat.completions.create({
-          messages: [
-            { role: 'system', content: 'write a cover letter for the following job description based on the resume' },
-            { role: 'user', content: `${text} \n Based on the resume, please write a cover letter for the following job: \n${jobContent}`}
-          ],
-          model: 'gpt-4o-mini',
-        });
-        console.log(chatCompletion.choices[0])
+        try {
+          // today's date
+          const today = new Date();
+          const month = today.getMonth() + 1;
+          const year = today.getFullYear();
+          const date = today.getDate();
+
+          const client = new OpenAI({
+            apiKey: openAIAPI,
+            dangerouslyAllowBrowser: true
+          });
+          const chatCompletion = await client.chat.completions.create({
+            messages: [
+              { role: 'system', content: `Write a cover letter for the following job description based on the resume. \
+                The result should only include the cover letter so that users can directly upload it. \
+                My name is ${formData.firstName} ${formData.lastName}, and today's date is ${month}/${date}/${year}.
+              ` },
+              { role: 'user', content: `${text} \n Based on the resume, please write a cover letter for the following job:\n
+                ${jobContent}. My name is ${formData.firstName} ${formData.lastName} and today's date is ${month}-${date}-${year}
+              `},
+            ],
+            model: 'gpt-4o-mini',
+          });
+
+          console.log(chatCompletion.choices[0]);
+          setAlert({ open: true, message: 'Cover letter generated!', severity: 'success' });
+          setOpenAICoverLetter(chatCompletion.choices[0]?.message?.content);
+
+          // store the cover letter for 5 minutes
+          chrome.storage?.local.set({ openAICoverLetter: chatCompletion.choices[0]?.message?.content, coverLetterTimeout:  Math.floor(new Date() / 1000) }, () => {
+            console.log('Cover letter saved');
+          });
+
+        } catch (e) {
+          console.error(e);
+          setAlert({ open: true, message: 'Failed to generate cover letter. Please check your OpenAI API key.', severity: 'error' });
+        }
       }
 
     }
     reader.readAsArrayBuffer(file);
+  }
+
+  const handleReviewCoverLetter = () => {
+    if (!openAICoverLetter) {
+      setAlert({ open: true, message: 'Please generate cover letter first', severity: 'error' });
+      return;
+    }
+
+    setDisplayCoverLetter(!displayCoverLetter);
+  }
+
+  const handleAttachCoverLetter = () => {
+    if (!openAICoverLetter) {
+      setAlert({ open: true, message: 'Please generate cover letter first', severity: 'error' });
+      return;
+    }
   }
 
   // css style for button
@@ -300,8 +342,7 @@ function Popup() {
 
           <div className="pb-5 w-full">
             <button
-              className={`
-                ${buttonClassName(contentJSLoaded)} text-white font-bold py-2 px-4 rounded w-full`}
+              className="bg-green-400 text-white font-bold py-2 px-4 rounded w-full"
               onClick={handleAutoFill}
             >
               Auto Fill
@@ -320,9 +361,34 @@ function Popup() {
           <div className="pb-5 w-full flex-1">
             <button
               className={`${buttonClassName(openAIAPI && jobContent)} text-white font-bold py-2 px-4 rounded w-full`}
-              onClick={handleCoverLetter}
+              onClick={handleGenCoverLetter}
             >
               Generate Cover Letter
+            </button>
+          </div>
+
+          <textarea
+            className='w-full rounded-md transition-all duration-300 ease-in-out'
+            style={{height: displayCoverLetter? 500: 0, padding: displayCoverLetter? '10px': '0px', marginBottom: displayCoverLetter? '10px': '0px'}}
+            value={openAICoverLetter}
+            onChange={(e) => setOpenAICoverLetter(e.target.value)}
+          />
+
+          <div className="pb-5 w-full flex-1">
+            <button
+              className={`${buttonClassName(openAICoverLetter)} text-white font-bold py-2 px-4 rounded w-full`}
+              onClick={handleReviewCoverLetter}
+            >
+              {displayCoverLetter? "Close Edittor": "Review Cover Letter"}
+            </button>
+          </div>
+
+          <div className="pb-5 w-full flex-1">
+            <button
+              className={`${buttonClassName(openAICoverLetter)} text-white font-bold py-2 px-4 rounded w-full`}
+              onClick={handleAttachCoverLetter}
+            >
+              Attach Cover Letter
             </button>
           </div>
 
