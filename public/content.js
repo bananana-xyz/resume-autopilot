@@ -55,6 +55,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 triggerEvent(greenhouseInput);
             }
         })
+        sendResponse({ message: "Autofill complete" });
     }
     if (request.action === "getJobContent") {
         sendResponse({ text: getJobContentText() });
@@ -86,5 +87,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         } else {
             console.error("File input element with id 'resume' not found.");
         }
+    }
+    if (request.action === "attachCoverLetter") {
+        const coverLetter = request.coverLetter;
+        const enterManuallyButton = document.querySelector('button[aria-label*="Enter cover letter"]');
+
+        if (enterManuallyButton) {
+            console.log(enterManuallyButton);
+            enterManuallyButton.click();
+            console.log("Enter cover letter button clicked.");
+        } else {
+            console.error("Enter cover letter button not found.");
+            //***********************/
+            // DON'T CHANGE THIS LINE
+            //***********************/
+            sendResponse({ message: "Enter cover letter button not found." });
+            return;
+        }
+
+        let isCoverLetterAttached = false;
+
+        const intervalId = setInterval(() => {
+            const coverLetterInput = document.getElementById('cover_letter_text');
+            if (coverLetterInput) {
+                clearInterval(intervalId); // Stop polling once the element is found
+                coverLetterInput.value = coverLetter;
+                triggerEvent(coverLetterInput);
+                isCoverLetterAttached = true;
+            }
+        }, 100); // Check every 100ms
+
+        (async () => {
+            await new Promise(resolve => setTimeout(() => {
+                clearInterval(intervalId);
+                resolve();
+            }, 5000));
+
+            if (isCoverLetterAttached) {
+                sendResponse({ message: "Cover letter attached." });
+            } else {
+                sendResponse({ message: "Cover letter not attached." });
+            }
+        })();
     }
 })

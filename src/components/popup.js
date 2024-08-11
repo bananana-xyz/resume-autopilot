@@ -14,6 +14,10 @@ import Logo from '../icons/Logo.png';
 import DeleteIcon from '../icons/DeleteIcon';
 import DownloadIcon from '../icons/DownloadIcon';
 
+
+// version
+const version = process.env.REACT_APP_VERSION || 'unknown build';
+
 // constant
 const DefaultColor = "#9A6852"
 
@@ -123,7 +127,11 @@ function Popup() {
           action: 'autoFill',
           value: formData
         }
-      );
+      ).then((response) => {
+        if (response.message === "Autofill complete") {
+          setAlert({ open: true, message: 'Filled your application', severity: 'success' });
+        }
+      });
     });
 
     if (resume) {
@@ -305,6 +313,16 @@ function Popup() {
       setAlert({ open: true, message: 'Please generate cover letter first', severity: 'error' });
       return;
     }
+
+    chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(
+        tabs[0].id,
+        {
+          action: 'attachCoverLetter',
+          coverLetter: openAICoverLetter
+        }
+      )
+    });
   }
 
   // css style for button
@@ -391,6 +409,12 @@ function Popup() {
               Attach Cover Letter
             </button>
           </div>
+
+          {openAICoverLetter &&
+            <div className='text-sm text-gray-400/80 text-center pb-2'>
+              Your cover letter will be stored for 5 minutes. Please attach it before it is deleted from memory.
+            </div>
+          }
 
         </div>
       )}
@@ -537,6 +561,7 @@ function Popup() {
         </div>
       )}
 
+      <div className='text-sm text-center text-gray-400/60'>version: {version}</div>
 
     </div>
   );
