@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Greenhouse Autopilot",
-  "description": "Your Greenhouse Autopilot",
+  "name": "Resume Autopilot",
+  "description": "Your Resume Autopilot",
   "version": "1.0.0",
   "icons": {
     "256": "logo.png",
