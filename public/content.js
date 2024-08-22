@@ -1,5 +1,5 @@
 /*global chrome*/
-console.log('Greenhouse Autopilot Content script loaded');
+console.log('Resume Autopilot Content script loaded');
 
 // Notify popup.js that content.js is loaded
 chrome.runtime.sendMessage({ action: "AutopilotScriptLoaded" });

@@ -351,7 +351,7 @@ function Popup() {
         <Fade in={!isSetup} style={{
           height: isSetup ? '0px' : 'auto',
         }}>
-          <div className="flex-1 font-bold text-xl">Greenhouse Autopilot</div>
+          <div className="flex-1 font-bold text-xl">Resume Autopilot</div>
         </Fade>
       </div>
 
